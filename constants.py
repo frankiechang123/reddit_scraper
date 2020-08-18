@@ -14,4 +14,5 @@ PASSWORD = os.getenv('PASSWORD')
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36"
 
-URL_TOKEN="https://www.reddit.com/api/v1/access_token"
+URL_TOKEN = "https://www.reddit.com/api/v1/access_token"
+REDDIT_URL = "http://oauth.reddit.com/"

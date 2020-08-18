@@ -11,6 +11,7 @@ class reddit_spider:
         self.token_type = response["token_type"]
 
     # get the authentication info
+
     def getAuth(self):
         client_auth = requests.auth.HTTPBasicAuth(APP_ID, APP_SECRET)
         post_data = {"grant_type": "password",
@@ -25,7 +26,7 @@ class reddit_spider:
     # Mode: hot, best, new
     def get_Post_IDs(self, subreddit=None, count=25, mode="hot"):
         if(subreddit):
-            sub_url = "r/{subreddit}/"
+            sub_url = "r/{0}/".format(subreddit)
         else:
             sub_url = ""
 
@@ -44,7 +45,33 @@ class reddit_spider:
             print("invalid mode")
             return None
 
+        url = REDDIT_URL+sub_url+suffix
+        headers = {
+            "Authorization": "{0}{1}".format(self.token_type, self.token),
+            "User-Agent": USER_AGENT
+        }
+        IDs = []
+        if(count <= 100):
+            params = {
+                "limit": count
+            }
+            response = requests.request(
+                "GET", url, headers=headers, params=params)
+
+            response = response.json()
+            if(response.get("error")):
+                print(response["message"])
+                exit()
+
+            for post in response["data"]["children"]:
+                IDs.append(post["data"]["id"])
+        else:  # count>100
+            pass
+
+        return IDs
+
 
 spider = reddit_spider()
 print(spider.token)
 print(spider.token_type)
+print(spider.get_Post_IDs(subreddit="ucla"))
