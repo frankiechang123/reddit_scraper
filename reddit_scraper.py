@@ -66,7 +66,27 @@ class reddit_spider:
             for post in response["data"]["children"]:
                 IDs.append(post["data"]["id"])
         else:  # count>100
-            pass
+            _next = None
+            while(count > 0):
+                if(count >= 100):
+                    limit = 100
+                else:
+                    limit = count
+                params = {
+                    "limit": limit,
+                    "after": _next
+                }
+                response = requests.request(
+                    "GET", url, headers=headers, params=params)
+
+                response = response.json()
+                if(response.get("error")):
+                    print(response["message"])
+                    exit()
+                for post in response["data"]["children"]:
+                    IDs.append(post["data"]["id"])
+                _next = response["data"]["after"]
+                count -= limit
 
         return IDs
 
@@ -74,4 +94,6 @@ class reddit_spider:
 spider = reddit_spider()
 print(spider.token)
 print(spider.token_type)
-print(spider.get_Post_IDs(subreddit="ucla"))
+ids = spider.get_Post_IDs(subreddit="ucla", count=150)
+print(ids)
+print(len(ids))
