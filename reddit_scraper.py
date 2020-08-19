@@ -2,6 +2,7 @@ from constants import *
 import requests
 import requests.auth
 import html
+import csv
 
 
 class reddit_spider:
@@ -91,6 +92,7 @@ class reddit_spider:
 
         return IDs
 
+    # input: post_id, name of subreddit
     # return a list of comments
 
     def getComments(self, post_id, subreddit=None):
@@ -124,7 +126,7 @@ class reddit_spider:
         return commentList
 
     # input: commentList: list of fetched comments | commentDict: a comment dict
-    # output:
+    # commentList gets modified in-place
 
     def parseComment(self, commentList, commentDict):
         kind = commentDict["kind"]
@@ -135,15 +137,37 @@ class reddit_spider:
         text = toPlainText(body)
         commentList.append(text)
 
+    # input:  list of post_IDs, name of subreddit
+    # write everything to a csv file
+    # output: number of text processed
+    def getComments_with_postIDs(self, Post_IDs, subreddit=None):
+        count = 0
+        for ID in Post_IDs:
+            comments = self.getComments(ID, subreddit=subreddit)
+            print(comments)
+            writeToCSV(comments)
+            count += len(comments)
+        return count
+
 
 def toPlainText(s):
     return html.unescape(s.replace('\n', ' '))
+
+# input:  List of text
+# write text to text.csv
+
+
+def writeToCSV(textList):
+    with open('text.csv', 'a', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(textList)
 
 
 spider = reddit_spider()
 print(spider.token)
 print(spider.token_type)
 ids = spider.get_Post_IDs(subreddit="ucla", count=150)
-print(ids)
-print(len(ids))
-print(spider.getComments("icsql6", subreddit="ucla"))
+
+print(spider.getComments_with_postIDs(ids))
+
+# print(spider.getComments_with_postIDs(ids))
