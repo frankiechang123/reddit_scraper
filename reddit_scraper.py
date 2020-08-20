@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+import wordcloud
 from constants import *
 import requests
 import requests.auth
@@ -144,7 +146,6 @@ class reddit_spider:
         count = 0
         for ID in Post_IDs:
             comments = self.getComments(ID, subreddit=subreddit)
-            print(comments)
             writeToCSV(comments)
             count += len(comments)
         return count
@@ -169,5 +170,21 @@ print(spider.token_type)
 ids = spider.get_Post_IDs(subreddit="ucla", count=150)
 
 print(spider.getComments_with_postIDs(ids))
+
+text = ''
+with open('text.csv', newline='', encoding='utf-8') as csvfile:
+    reader = csv.reader(csvfile)
+    for row in reader:
+        text += ' '.join(row)
+
+
+cloud = wordcloud.WordCloud().generate(text)
+
+plt.imshow(cloud, interpolation='bilinear')
+plt.axis('off')
+
+
+plt.show()
+
 
 # print(spider.getComments_with_postIDs(ids))
