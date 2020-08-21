@@ -5,6 +5,8 @@ import requests
 import requests.auth
 import html
 import csv
+import os
+import re
 
 
 class reddit_spider:
@@ -150,9 +152,14 @@ class reddit_spider:
             count += len(comments)
         return count
 
+# TODO
+
 
 def toPlainText(s):
-    return html.unescape(s.replace('\n', ' '))
+    s = html.unescape(s.replace('\n', ' '))
+    s = re.sub(r"&#x200B;", ' ', s)
+    s = re.sub(r'https?\S+', "", s)
+    return s
 
 # input:  List of text
 # write text to text.csv
@@ -163,13 +170,22 @@ def writeToCSV(textList):
         writer = csv.writer(csvfile)
         writer.writerow(textList)
 
+# delete the file if the csv file exists
 
+
+def initCsv():
+    if(os.path.exists('text.csv')):
+        os.remove('text.csv')
+
+
+initCsv()
 spider = reddit_spider()
 print(spider.token)
 print(spider.token_type)
-ids = spider.get_Post_IDs(subreddit="ucla", count=150)
+ids = spider.get_Post_IDs(subreddit="Python", count=150)
 
 print(spider.getComments_with_postIDs(ids))
+
 
 text = ''
 with open('text.csv', newline='', encoding='utf-8') as csvfile:
@@ -177,8 +193,8 @@ with open('text.csv', newline='', encoding='utf-8') as csvfile:
     for row in reader:
         text += ' '.join(row)
 
-
-cloud = wordcloud.WordCloud().generate(text)
+cloud = wordcloud.WordCloud(width=1200, height=600,
+                            max_words=100, background_color="white", include_numbers=False, min_word_length=3).generate(text)
 
 plt.imshow(cloud, interpolation='bilinear')
 plt.axis('off')
