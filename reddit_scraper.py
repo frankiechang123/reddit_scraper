@@ -152,14 +152,36 @@ class reddit_spider:
             count += len(comments)
         return count
 
-# TODO
+    def get_reddit_wordCloud(self, subreddit, mode="hot", count=25, width=1200, height=600, max_words=100, background_color="black", include_numbers=False, min_word_length=3):
+        initCsv()
+        print("scraping content from r/{0}...".format(subreddit))
+        ids = spider.get_Post_IDs(subreddit=subreddit, count=count)
+        num_text_processed = spider.getComments_with_postIDs(ids)
+        print("{0} comments have been processed".format(num_text_processed))
+
+        print("Creating word cloud...")
+
+        text = ''
+        with open('text.csv', newline='', encoding='utf-8') as csvfile:
+            reader = csv.reader(csvfile)
+            for row in reader:
+                text += ' '.join(row)
+
+        cloud = wordcloud.WordCloud(width=width, height=height,
+                                    max_words=max_words, background_color=background_color, include_numbers=include_numbers, min_word_length=min_word_length).generate(text)
+
+        plt.imshow(cloud, interpolation='bilinear')
+        plt.axis('off')
+
+        plt.show()
 
 
 def toPlainText(s):
     s = html.unescape(s.replace('\n', ' '))
-    s = re.sub(r"&#x200B;", ' ', s)
-    s = re.sub(r'https?\S+', "", s)
+    s = re.sub(r"&#x200B;", ' ', s)  # get rid of zero-length space
+    s = re.sub(r'https?\S+', "", s)  # get rid of links
     return s
+
 
 # input:  List of text
 # write text to text.csv
@@ -178,29 +200,7 @@ def initCsv():
         os.remove('text.csv')
 
 
-initCsv()
 spider = reddit_spider()
-print(spider.token)
-print(spider.token_type)
-ids = spider.get_Post_IDs(subreddit="Python", count=150)
-
-print(spider.getComments_with_postIDs(ids))
-
-
-text = ''
-with open('text.csv', newline='', encoding='utf-8') as csvfile:
-    reader = csv.reader(csvfile)
-    for row in reader:
-        text += ' '.join(row)
-
-cloud = wordcloud.WordCloud(width=1200, height=600,
-                            max_words=100, background_color="white", include_numbers=False, min_word_length=3).generate(text)
-
-plt.imshow(cloud, interpolation='bilinear')
-plt.axis('off')
-
-
-plt.show()
-
+spider.get_reddit_wordCloud('ucla')
 
 # print(spider.getComments_with_postIDs(ids))
