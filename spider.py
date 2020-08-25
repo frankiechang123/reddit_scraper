@@ -123,27 +123,65 @@ class reddit_spider:
         commentList.append(toPlainText(PostText))
 
         commentsJsonList = response[1]["data"]["children"]
-
+        print(len(commentsJsonList))
+        link_id = 't3_'+post_id
         for item in commentsJsonList:
-            self.parseComment(commentList, item)
+            self.parseComment(commentList, item, link_id)
 
         return commentList
 
     # input: commentList: list of fetched comments | commentDict: a comment dict
     # commentList gets modified in-place
-
-    def parseComment(self, commentList, commentDict):
+    def parseComment(self, commentList, commentDict, link_id):
         kind = commentDict["kind"]
         if(kind == 'more'):  # TODO: process "more"
-            return
-        # if(kind=='t1'):
-        body = commentDict["data"]["body"]
-        text = toPlainText(body)
-        commentList.append(text)
+            childrenList = commentDict['data']['children']
+            childrenCommentList = []
+            while(not len(childrenList) == 0):
+                i = 0
+                children = ""
+                while(not i == len(childrenList) and i <= 99):
+                    children += childrenList[i]
+                    children += ','
+                    i += 1
+                children = children[:-1]
+                childrenCommentList += self.callMoreChildren(link_id, children)
+                childrenList = childrenList[i:]
+
+            for item in childrenCommentList:
+                if(item["kind"] == "t1"):
+                    commentList.append(toPlainText(
+                        item["data"]["contentText"]))
+
+        if(kind == 't1'):
+            body = commentDict["data"]["body"]
+            text = toPlainText(body)
+            commentList.append(text)
+
+    # call api/morechildren to get more comments
+    # link_id: full name of the post
+    # children: comma-demilited list of comment ID36s
+    # output: list of comment objects
+    def callMoreChildren(self, link_id, children):
+        headers = {
+            "Authorization": "{0}{1}".format(self.token_type, self.token),
+            "User-Agent": USER_AGENT
+        }
+        params = {
+            "link_id": link_id,
+            "children": children,
+            "api_type": "json"
+        }
+        url = REDDIT_URL+"api/morechildren"
+
+        response = requests.request("GET", url, headers=headers, params=params)
+        response = response.json()
+        return response["json"]["data"]["things"]
 
     # input:  list of post_IDs, name of subreddit
     # write everything to a csv file
     # output: number of text processed
+
     def getComments_with_postIDs(self, Post_IDs, subreddit=None):
         count = 0
         for ID in Post_IDs:
@@ -201,6 +239,6 @@ def initCsv():
 
 
 spider = reddit_spider()
-spider.get_reddit_wordCloud('ucla')
-
+comments = spider.getComments("hhugnl", subreddit='ucla')
+print(len(comments))
 # print(spider.getComments_with_postIDs(ids))
