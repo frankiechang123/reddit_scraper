@@ -30,7 +30,7 @@ class reddit_spider:
 
     # returns a list of IDs of the posts in the subreddit
     # Mode: hot, best, new
-    def get_Post_IDs(self, subreddit=None, count=25, mode="hot"):
+    def get_Post_IDs(self, subreddit=None, count=25, mode="hot", includePinned=False):
         if(subreddit):
             sub_url = "r/{0}/".format(subreddit)
         else:
@@ -70,7 +70,11 @@ class reddit_spider:
                 exit()
 
             for post in response["data"]["children"]:
-                IDs.append(post["data"]["id"])
+                if(includePinned):
+                    IDs.append(post["data"]["id"])
+                else:
+                    if(not post["data"]["stickied"]):
+                        IDs.append(post["data"]["id"])
         else:  # count>100
             _next = None
             while(count > 0):
@@ -123,7 +127,7 @@ class reddit_spider:
         commentList.append(toPlainText(PostText))
 
         commentsJsonList = response[1]["data"]["children"]
-        print(len(commentsJsonList))
+
         link_id = 't3_'+post_id
         for item in commentsJsonList:
             self.parseComment(commentList, item, link_id)
@@ -190,10 +194,11 @@ class reddit_spider:
             count += len(comments)
         return count
 
-    def get_reddit_wordCloud(self, subreddit, mode="hot", count=25, width=1200, height=600, max_words=100, background_color="black", include_numbers=False, min_word_length=3):
+    def get_reddit_wordCloud(self, subreddit, mode="hot", count=25, width=1200, height=600, max_words=100, background_color="black", include_numbers=False, min_word_length=3, includePinned=False, normalize_plurals=False):
         initCsv()
         print("scraping content from r/{0}...".format(subreddit))
-        ids = spider.get_Post_IDs(subreddit=subreddit, count=count)
+        ids = spider.get_Post_IDs(
+            subreddit=subreddit, count=count, mode=mode, includePinned=includePinned)
         num_text_processed = spider.getComments_with_postIDs(ids)
         print("{0} comments have been processed".format(num_text_processed))
 
@@ -205,7 +210,7 @@ class reddit_spider:
             for row in reader:
                 text += ' '.join(row)
 
-        cloud = wordcloud.WordCloud(width=width, height=height,
+        cloud = wordcloud.WordCloud(normalize_plurals=normalize_plurals, width=width, height=height,
                                     max_words=max_words, background_color=background_color, include_numbers=include_numbers, min_word_length=min_word_length).generate(text)
 
         plt.imshow(cloud, interpolation='bilinear')
@@ -239,6 +244,5 @@ def initCsv():
 
 
 spider = reddit_spider()
-comments = spider.getComments("hhugnl", subreddit='ucla')
-print(len(comments))
+spider.get_reddit_wordCloud(subreddit='ucla')
 # print(spider.getComments_with_postIDs(ids))
