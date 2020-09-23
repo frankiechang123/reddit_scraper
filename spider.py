@@ -23,9 +23,12 @@ class reddit_spider:
         post_data = {"grant_type": "password",
                      "username": USER_NAME, "password": PASSWORD}
         headers = {"User-Agent": USER_AGENT}
-
-        response = requests.post(URL_TOKEN, data=post_data,
-                                 auth=client_auth, headers=headers)
+        try:
+            response = requests.post(
+                URL_TOKEN, data=post_data, auth=client_auth, headers=headers)
+        except:
+            print("Error: Check your Internet connection")
+            exit()
         return response.json()
 
     # returns a list of IDs of the posts in the subreddit
@@ -103,7 +106,7 @@ class reddit_spider:
     # input: post_id, name of subreddit
     # return a list of comments
 
-    def getComments(self, post_id, subreddit=None):
+    def getComments(self, post_id, subreddit=None, debug=False, expandMoreChildren=False):
         if(subreddit):
             url = REDDIT_URL + \
                 "r/{0}/comments/{1}.json".format(subreddit, post_id)
@@ -119,6 +122,8 @@ class reddit_spider:
         }
 
         response = requests.request("GET", url, headers=headers, params=params)
+        if(debug == True):
+            print(url+" "+str(response.status_code))
         response = response.json()
 
         commentList = []
@@ -130,15 +135,16 @@ class reddit_spider:
 
         link_id = 't3_'+post_id
         for item in commentsJsonList:
-            self.parseComment(commentList, item, link_id)
+            self.parseComment(commentList, item, link_id,
+                              debug=debug, expandMoreChildren=expandMoreChildren)
 
         return commentList
 
     # input: commentList: list of fetched comments | commentDict: a comment dict
     # commentList gets modified in-place
-    def parseComment(self, commentList, commentDict, link_id):
+    def parseComment(self, commentList, commentDict, link_id, debug=False, expandMoreChildren=False):
         kind = commentDict["kind"]
-        if(kind == 'more'):  # TODO: process "more"
+        if(kind == 'more' and expandMoreChildren):  # TODO: process "more"
             childrenList = commentDict['data']['children']
             childrenCommentList = []
             while(not len(childrenList) == 0):
@@ -149,7 +155,8 @@ class reddit_spider:
                     children += ','
                     i += 1
                 children = children[:-1]
-                childrenCommentList += self.callMoreChildren(link_id, children)
+                childrenCommentList += self.callMoreChildren(
+                    link_id, children, debug=debug)
                 childrenList = childrenList[i:]
 
             for item in childrenCommentList:
@@ -166,7 +173,7 @@ class reddit_spider:
     # link_id: full name of the post
     # children: comma-demilited list of comment ID36s
     # output: list of comment objects
-    def callMoreChildren(self, link_id, children):
+    def callMoreChildren(self, link_id, children, debug=False):
         headers = {
             "Authorization": "{0}{1}".format(self.token_type, self.token),
             "User-Agent": USER_AGENT
@@ -179,6 +186,8 @@ class reddit_spider:
         url = REDDIT_URL+"api/morechildren"
 
         response = requests.request("GET", url, headers=headers, params=params)
+        if(debug):
+            print("   "+url+" "+str(response.status_code))
         response = response.json()
         return response["json"]["data"]["things"]
 
@@ -186,20 +195,28 @@ class reddit_spider:
     # write everything to a csv file
     # output: number of text processed
 
-    def getComments_with_postIDs(self, Post_IDs, subreddit=None):
+    def getComments_with_postIDs(self, Post_IDs, subreddit=None, debug=False, expandMoreChildren=False):
         count = 0
         for ID in Post_IDs:
-            comments = self.getComments(ID, subreddit=subreddit)
+            comments = self.getComments(
+                ID, subreddit=subreddit, debug=debug, expandMoreChildren=expandMoreChildren)
             writeToCSV(comments)
             count += len(comments)
         return count
 
-    def get_reddit_wordCloud(self, subreddit, mode="hot", count=25, width=1200, height=600, max_words=100, background_color="black", include_numbers=False, min_word_length=3, includePinned=False, normalize_plurals=False):
+    def get_reddit_wordCloud(self, subreddit, mode="hot", count=25, width=1200,
+                             height=600, max_words=100, background_color="black",
+                             include_numbers=False, min_word_length=3, includePinned=False, normalize_plurals=False,
+                             debug=False, expandMoreChildren=False):
         initCsv()
-        print("scraping content from r/{0}...".format(subreddit))
-        ids = spider.get_Post_IDs(
+        if(subreddit):
+            print("scraping content from r/{0}...".format(subreddit))
+        else:
+            print("scraping content from Reddit")
+        ids = self.get_Post_IDs(
             subreddit=subreddit, count=count, mode=mode, includePinned=includePinned)
-        num_text_processed = spider.getComments_with_postIDs(ids)
+        num_text_processed = self.getComments_with_postIDs(
+            ids, subreddit=subreddit, debug=debug, expandMoreChildren=expandMoreChildren)
         print("{0} comments have been processed".format(num_text_processed))
 
         print("Creating word cloud...")
@@ -241,8 +258,3 @@ def writeToCSV(textList):
 def initCsv():
     if(os.path.exists('text.csv')):
         os.remove('text.csv')
-
-
-spider = reddit_spider()
-spider.get_reddit_wordCloud(subreddit='ucla')
-# print(spider.getComments_with_postIDs(ids))
