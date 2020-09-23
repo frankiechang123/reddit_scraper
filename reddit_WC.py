@@ -5,7 +5,7 @@ parser = argparse.ArgumentParser(description='Subreddit word cloud generator')
 
 parser.add_argument('subreddit', nargs='?', type=str)
 parser.add_argument('--mode', '-m', default='hot',
-                    const='hot', nargs='?', type=str, choices=['hot', 'new', 'top'])
+                    const='hot', nargs='?', type=str, choices=['hot', 'new', 'top'],)
 parser.add_argument('--count', '-c', default=25,
                     const=25, nargs='?', type=int)
 parser.add_argument('--width', '-W', nargs='?',
@@ -22,7 +22,7 @@ parser.add_argument('--include_pinned',
                     action='store_true', dest="includePinned")
 parser.add_argument('--normalize_plurals', action='store_true')
 parser.add_argument('--debug', action='store_true')
-
+parser.add_argument('--expandMoreChildren', action='store_true')
 
 if __name__ == "__main__":
     args = parser.parse_args()
